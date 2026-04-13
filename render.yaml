@@ -1,10 +1,4 @@
-services:
-  - type: web
-    name: pdf-to-word-api
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-    plan: free
+buildCommand: |
+  apt-get update
+  apt-get install -y tesseract-ocr tesseract-ocr-eng poppler-utils
+  pip install -r requirements.txt
