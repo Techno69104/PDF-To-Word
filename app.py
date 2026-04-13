@@ -3,7 +3,13 @@ from flask_cors import CORS
 import os
 import tempfile
 import uuid
-from main import pdf_to_word
+import sys
+
+# Add current directory to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import the enhanced OCR version
+from main_ocr import pdf_to_word
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from your PHP tool
@@ -37,12 +43,12 @@ def convert_pdf_to_word():
         word_filename = f"{uuid.uuid4().hex}.docx"
         word_path = os.path.join(output_dir, word_filename)
         
-        # Convert PDF to Word using the existing function
-        pdf_to_word(pdf_path, word_path)
+        # Convert PDF to Word using OCR-enhanced function
+        result = pdf_to_word(pdf_path, word_path)
         
         # Check if conversion succeeded
-        if not os.path.exists(word_path):
-            return jsonify({'error': 'Conversion failed'}), 500
+        if not os.path.exists(word_path) or os.path.getsize(word_path) < 100:
+            return jsonify({'error': 'Conversion failed. The PDF may be corrupted or empty.'}), 500
         
         # Send the Word file back
         return send_file(
@@ -57,16 +63,31 @@ def convert_pdf_to_word():
     
     finally:
         # Clean up temporary files
-        if 'pdf_path' in locals() and os.path.exists(pdf_path):
-            os.unlink(pdf_path)
-        if 'output_dir' in locals() and os.path.exists(output_dir):
-            import shutil
-            shutil.rmtree(output_dir, ignore_errors=True)
+        try:
+            if 'pdf_path' in locals() and os.path.exists(pdf_path):
+                os.unlink(pdf_path)
+            if 'output_dir' in locals() and os.path.exists(output_dir):
+                import shutil
+                shutil.rmtree(output_dir, ignore_errors=True)
+        except:
+            pass
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy'}), 200
+    return jsonify({'status': 'healthy', 'message': 'PDF to Word API with OCR is running'}), 200
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({
+        'service': 'PDF to Word Converter API',
+        'version': '2.0',
+        'features': ['OCR Support', 'Scanned PDF Support', 'Text Extraction'],
+        'endpoints': {
+            'convert': 'POST /convert (multipart/form-data with "file" field)',
+            'health': 'GET /health'
+        }
+    }), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
