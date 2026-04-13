@@ -5,3 +5,5 @@ Pillow
 Flask
 flask-cors
 gunicorn
+pytesseract
+pdf2image
